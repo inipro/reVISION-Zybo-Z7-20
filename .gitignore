@@ -1,0 +1,7 @@
+*.sw[op]
+vivado.log
+vivado.jou
+*~
+*#
+z7_20_hdmi/
+**/.Xil

@@ -1,0 +1,162 @@
+$ petalinux-create -t project -n z7_20_hdmi --template zynq
+$ cd z7_20_hdmi
+$ petalinux-config --get-hw-description=../../z7_20_hdmi/z7_20_hdmi.sdk
+
+Image Packaging Configuration -> Root filesystem type
+	(X) SD card
+
+Image Packaging Configuration
+	[ ] Copy final images to tftpboot
+
+Yocto Settings -> TMPDIR Location
+    /home/hokim/work/tmp2017.4_zynq
+
+Yocto Settings -> Local sstate feeds settings
+	/media/hokim/data/sstate-rel-v2017.4/arm 
+
+Yocto Settings -> Add pre-mirror url
+	file:///media/hokim/data/sstate-rel-v2017.4/downloads
+
+Yocto Settings -> User Layers
+	/home/hokim/work/z7_20_hdmi.rgb/petalinux/meta-inipro
+
+$ petalinux-config -c kernel
+
+Device Drivers -> Generic Driver Options
+(256) Size in Mega Bytes ===> CMA_SIZE_MBYTES=256
+
+Device Drivers
+[*] Staging drivers ===> CONFIG_STAGING
+
+Device Drivers -> Staging drivers
+<*> Xilinx APF Accelerator driver ===> XILINX_APF=y
+
+Device Drivers -> Staging drivers -> Xilinx APF Accelerator driver
+[*] Xilinx APF DMA engines support ===> XILINX_DMA_APF=y
+
+$ vi project-spec/meta-user/recipes-bsp/u-boot/files/platform-top.h
+
+#undef CONFIG_DEBUG_UART
+#endif
+#endif
++
++#define CONFIG_PREBOOT  "echo U-BOOT for z7_20_hdmi;setenv preboot; echo"
+
+$ petalinux-build -c device-tree-generation
+
+$ vi project-spec/meta-user/recipes-bsp/device-tree/files/system-user.dtsi
+/include/ "system-conf.dtsi"
+/ {
++    model = "Zynq Zybo Z7 Development Board";
++    compatible = "digilent,zynq-zyboz7", "xlnx,zynq-7000";
++
++    chosen {
++        bootargs = "console=ttyPS0,115200 console=tty1 consoleblank=0 root=/dev/mmcblk0p2 rw earlyprintk rootwait rootfstype=ext4 quiet uio_pdrv_genirq.of_id=generic-uio";
++    };
++
++    usb_phy0: usb_phy@0 {
++        compatible = "ulpi-phy";
++        #phy-cells = <0>;
++        reg = <0xe0002000 0x1000>;
++        view-port = <0x0170>;
++        drv-vbus;
++    };
++
++    xlnk {
++        compatible = "xlnx,xlnk-1.0";
++    };
+};
++
++&usb0 {
++    dr_mode = "host";
++    usb-phy = <&usb_phy0>;
++};
++
++/delete-node/ &v_tc_0;
++
++&v_frmbuf_wr_0 {
++    compatible = "xlnx,axi-frmbuf-wr-v2";
++    #dma-cells = <1>;
++    clocks = <&clkc 15>;
++    clock-names = "fclk0";
++    xlnx,vid-formats = "yuyv", "uyvy", "nv16";
++    reset-gpios = <&gpio0 55 1>;
++    xlnx,dma-addr-width = <32>;
++};
++
++&axi_dynclk_0 {
++    compatible = "digilent,axi-dynclk";
++    #clock-cells = <0>;
++    clocks = <&clkc 17>;
++};
++
++&v_tc_1 {
++    compatible = "xlnx,v-tc-5.01.a";
++};
++
++&amba_pl {
++    hdmi_in {
++        compatible = "inipro,hdmi-in-1.00";
++        reg = <0x41000000 0x10000>;
++        dmas = <&v_frmbuf_wr_0 0>;
++        dma-names = "video";
++        locked-gpios = <&gpio0 54 0>;
++    };
++    encoder_0: digilent_encoder {
++        compatible = "digilent,drm-encoder";
++        digilent,fmax = <150000>;
++        digilent,edid-i2c = <&i2c0>;
++    };
++    xilinx_drm {
++        compatible = "xlnx,drm";
++        xlnx,vtc = <&v_tc_1>;
++        xlnx,connector-type = "HDMIA";
++        xlnx,encoder-slave = <&encoder_0>;
++        clocks = <&axi_dynclk_0>;
++        planes {
++            xlnx,pixel-format = "rgb888";
++            plane0 {
++                dmas = <&axi_vdma_0 0>;
++                dma-names = "dma0";
++            };
++        };
++    };
++};
+
+$ vi project-spec/meta-user/conf/petalinuxbsp.conf
+
+DEFAULT_TIMEZONE = "Asia/Seoul"
+
+EXTRA_IMAGE_FEATURES = "\
+    dev-pkgs \
+    tools-sdk \
+    package-management \
+"
+
+PACKAGE_CLASSES = "package_deb"
+PACKAGE_FEED_URIS = "http://192.168.10.1:5678"
+
+hostname_pn-base-files = "zybo"
+
+IMAGE_ROOTFS_EXTRA_SPACE = "102400"
+
+SIGGEN_UNLOCKED_RECIPES += "tzdata"
+
+
+$ vi project-spec/meta-user/recipes-core/images/petalinux-user-image.bbappend
+
+IMAGE_INSTALL_append = " bc vim nano tzdata dtc e2fsprogs-resize2fs"
+IMAGE_INSTALL_append = " libsds-staticdev glib-2.0-dev libdrm-dev libv4l-dev media-ctl-dev opencv-dev"
+IMAGE_INSTALL_append = " hdmi-in digilent-encoder clk-dglnt-dynclk"
+
+IMAGE_FEATURES_append = " petalinux-base"
+
+$ petalinux-build
+
+$ petalinux-package --force --boot --fsbl images/linux/zynq_fsbl.elf --fpga images/linux/system_wrapper.bit --u-boot
+
+$ tar cvzf ../sysroot.tar.gz -C /home/hokim/work/tmp2017.4_zynq/sysroots/plnx_arm .
+
+$ petalinux-package --bsp --force --output ../Petalinux-Zybo-Z7-20-2017.4-1.bsp -p ./
+
+$ cp /home/hokim/work/tmp2017.4_zynq/work-shared/plnx_arm/kernel-build-artifacts/Module.symvers ..
