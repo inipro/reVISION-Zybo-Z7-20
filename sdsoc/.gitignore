@@ -1,0 +1,11 @@
+output/
+workspace/
+sw/include/
+sw/lib/
+sysroot/
+resources/linux/boot/fsbl.elf
+resources/linux/boot/u-boot.elf
+resources/linux/image/image.ub
+resources/prebuilt/bitstream.bit
+resources/prebuilt/z7_20_hdmi.hdf
+sdx_pid*.str
