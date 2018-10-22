@@ -1,0 +1,14 @@
+# samrt channel --show
+# smart update
+# smart search digilent
+# smart install kernel-module-digilent-encoder
+# rpm -ql kernel-module-digilent-encoder
+
+# cd /run
+# v4l2-ctl -d /dev/video0 --set-fmt-video=width=1920,height=1080,pixelformat=RGB3 --stream-mmap --stream-count=30 --stream-to=test.raw
+
+$ scp root@192.168.10.10:/run/test.raw
+$ ffmpeg -f rawvideo -vcodec rawvideo -s 1920x1080 -r 15 -pix_fmt rgb24 -i test.raw -c:v libx264 -preset ultrafast -qp 0 output.mp4
+
+# v4l2-ctl -d /dev/video0 --set-fmt-video=width=1920,height=1080,pixelformat=RGB3 --stream-mmap --stream-count=1 --stream-to=test.raw
+# cat test.raw > /def/fb0

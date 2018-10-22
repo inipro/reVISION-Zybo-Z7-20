@@ -252,8 +252,8 @@ static void hdmi_in_buffer_queue(struct vb2_buffer *vb)
 	xilinx_vdma_channel_set_config(dma->dma, &config);
 	*/
 	
-	//xilinx_xdma_v4l2_config(dma->dma, dma->format.pixelformat);
-	xilinx_xdma_v4l2_config(dma->dma, V4L2_PIX_FMT_RGB24);
+	xilinx_xdma_v4l2_config(dma->dma, dma->format.pixelformat);
+	//xilinx_xdma_v4l2_config(dma->dma, V4L2_PIX_FMT_RGB24);
 
 	dma->xt.dir = DMA_DEV_TO_MEM;
 	dma->xt.src_sgl = false;

@@ -1,0 +1,3 @@
+# cd ..
+# cmake -Hvideo_lib -Bbuild/video_lib
+# cmake --build build/video_lib --target install

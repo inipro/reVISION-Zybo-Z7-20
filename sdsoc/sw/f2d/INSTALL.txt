@@ -1,0 +1,12 @@
+*** SW 
+
+# cd ..
+# cmake -Hf2d -Bbuild/f2d -DSW_ONLY=ON
+# cmake --build build/f2d --target install
+
+*** HW
+
+# cd ..
+# cmake -Hf2d -Bbuild/f2d
+# cmake --build build/f2d --target install
+

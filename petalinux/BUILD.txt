@@ -9,16 +9,39 @@ Image Packaging Configuration
 	[ ] Copy final images to tftpboot
 
 Yocto Settings -> TMPDIR Location
-    /home/hokim/work/tmp2017.4_zynq
+    /media/hokim/data/work/tmp2017.4_zynq
 
 Yocto Settings -> Local sstate feeds settings
-	/media/hokim/data/sstate-rel-v2017.4/arm 
+	/opt/petalinux/sstate-rel-v2017.4/arm 
 
 Yocto Settings -> Add pre-mirror url
-	file:///media/hokim/data/sstate-rel-v2017.4/downloads
+	file:///opt/petalinux/sstate-rel-v2017.4/downloads
 
 Yocto Settings -> User Layers
-	/home/hokim/work/z7_20_hdmi.rgb/petalinux/meta-inipro
+	/home/hokim/work/reVISION-Zybo-Z7-20/petalinux/meta-inipro
+
+$ vi project-spec/meta-user/conf/petalinuxbsp.conf
+#User Configuration
+
+#OE_TERMINAL = "tmux"
++
++EXTRA_IMAGE_FEATURES += "package-management"
++
++PACKAGE_FEED_URIS = "http://192.168.10.1:5678"
++
++hostname_pn-base-files = "zybo"
++
++IMAGE_ROOTFS_EXTRA_SPACE = "102400"
++
++SIGGEN_UNLOCKED_RECIPES += "tzdata"
+
+$ vi project-spec/meta-user/recipes-bsp/u-boot/files/platform-top.h
+
+#undef CONFIG_DEBUG_UART
+#endif
+#endif
++
++#define CONFIG_PREBOOT  "echo U-BOOT for zybo;setenv preboot; echo"
 
 $ petalinux-config -c kernel
 
@@ -34,15 +57,7 @@ Device Drivers -> Staging drivers
 Device Drivers -> Staging drivers -> Xilinx APF Accelerator driver
 [*] Xilinx APF DMA engines support ===> XILINX_DMA_APF=y
 
-$ vi project-spec/meta-user/recipes-bsp/u-boot/files/platform-top.h
-
-#undef CONFIG_DEBUG_UART
-#endif
-#endif
-+
-+#define CONFIG_PREBOOT  "echo U-BOOT for z7_20_hdmi;setenv preboot; echo"
-
-$ petalinux-build -c device-tree-generation
+$ petalinux-build -c device-tree
 
 $ vi project-spec/meta-user/recipes-bsp/device-tree/files/system-user.dtsi
 /include/ "system-conf.dtsi"
@@ -79,7 +94,7 @@ $ vi project-spec/meta-user/recipes-bsp/device-tree/files/system-user.dtsi
 +    #dma-cells = <1>;
 +    clocks = <&clkc 15>;
 +    clock-names = "fclk0";
-+    xlnx,vid-formats = "yuyv", "uyvy", "nv16";
++    xlnx,vid-formats = "bgr888";
 +    reset-gpios = <&gpio0 55 1>;
 +    xlnx,dma-addr-width = <32>;
 +};
@@ -97,7 +112,7 @@ $ vi project-spec/meta-user/recipes-bsp/device-tree/files/system-user.dtsi
 +&amba_pl {
 +    hdmi_in {
 +        compatible = "inipro,hdmi-in-1.00";
-+        reg = <0x41000000 0x10000>;
++        reg = <0x80000000 0x10000>;
 +        dmas = <&v_frmbuf_wr_0 0>;
 +        dma-names = "video";
 +        locked-gpios = <&gpio0 54 0>;
@@ -123,33 +138,27 @@ $ vi project-spec/meta-user/recipes-bsp/device-tree/files/system-user.dtsi
 +    };
 +};
 
-$ vi project-spec/meta-user/conf/petalinuxbsp.conf
-
-DEFAULT_TIMEZONE = "Asia/Seoul"
-
-EXTRA_IMAGE_FEATURES = "\
-    dev-pkgs \
-    tools-sdk \
-    package-management \
-"
-
-PACKAGE_CLASSES = "package_deb"
-PACKAGE_FEED_URIS = "http://192.168.10.1:5678"
-
-hostname_pn-base-files = "zybo"
-
-IMAGE_ROOTFS_EXTRA_SPACE = "102400"
-
-SIGGEN_UNLOCKED_RECIPES += "tzdata"
-
 
 $ vi project-spec/meta-user/recipes-core/images/petalinux-user-image.bbappend
 
-IMAGE_INSTALL_append = " bc vim nano tzdata dtc e2fsprogs-resize2fs"
-IMAGE_INSTALL_append = " libsds-staticdev glib-2.0-dev libdrm-dev libv4l-dev media-ctl-dev opencv-dev"
-IMAGE_INSTALL_append = " hdmi-in digilent-encoder clk-dglnt-dynclk"
-
-IMAGE_FEATURES_append = " petalinux-base"
+IMAGE_INSTALL_append = " kernel-module-hdmi-in \
+						kernel-module-digilent-encoder \
+						kernel-module-clk-dglnt-dynclk \
+						"
+IMAGE_INSTALL_append = " nano \
+						tzdata \
+						dtc \
+						e2fsprogs-resize2fs \
+						cmake \
+						libsds-staticdev \
+						v4l-utils \
+						yavta \
+						media-ctl-dev \
+						libv4l-dev \
+						libdrm-tests \
+						packagegroup-petalinux-opencv-dev \
+						packagegroup-petalinux-self-hosted \
+					   "
 
 $ petalinux-build
 
@@ -157,6 +166,10 @@ $ petalinux-package --force --boot --fsbl images/linux/zynq_fsbl.elf --fpga imag
 
 $ tar cvzf ../sysroot.tar.gz -C /home/hokim/work/tmp2017.4_zynq/sysroots/plnx_arm .
 
+$ petalinux-build -c package-index
+
 $ petalinux-package --bsp --force --output ../Petalinux-Zybo-Z7-20-2017.4-1.bsp -p ./
 
+
 $ cp /home/hokim/work/tmp2017.4_zynq/work-shared/plnx_arm/kernel-build-artifacts/Module.symvers ..
+
