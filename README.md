@@ -14,3 +14,21 @@ File -> Export -> Export Hardware(Include bitstream)
 
 ## petalinux
 See petalinux/BUILD.txt, petalinux/TEST.txt
+
+## sdsoc
+$ cd z7_20_hdmi
+
+$ vivado z7_20_hdmi.xpr
+
+Open Block Design
+
+Tcl Console : source ../create_dsa.tcl
+
+$ cd sdsoc
+
+$ sh copy.sh
+
+$ xsct platform.tcl
+
+$ sdx
+
